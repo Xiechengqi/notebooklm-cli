@@ -1,0 +1,135 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            asset_name: notebooklm-cli-linux-amd64
+          - target: aarch64-unknown-linux-musl
+            asset_name: notebooklm-cli-linux-arm64
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@1.88.0
+
+      - name: Install Zig for cross-compilation
+        uses: mlugg/setup-zig@v1
+        with:
+          version: 0.13.0
+
+      - name: Install cargo-zigbuild
+        run: cargo install cargo-zigbuild --locked
+
+      - name: Add musl targets
+        run: |
+          rustup target add x86_64-unknown-linux-musl
+          rustup target add aarch64-unknown-linux-musl
+
+      - name: Build release binary
+        run: cargo zigbuild --release --target ${{ matrix.target }}
+
+      - name: Prepare release asset
+        run: |
+          cp target/${{ matrix.target }}/release/notebooklm-cli ${{ matrix.asset_name }}
+          chmod +x ${{ matrix.asset_name }}
+          ls -lh ${{ matrix.asset_name }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: ${{ matrix.asset_name }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release files
+        run: |
+          mkdir -p release-files
+          cp artifacts/notebooklm-cli-linux-amd64/notebooklm-cli-linux-amd64 release-files/
+          cp artifacts/notebooklm-cli-linux-arm64/notebooklm-cli-linux-arm64 release-files/
+          ls -lh release-files/
+
+      - name: Get version from Cargo.toml
+        id: version
+        run: |
+          VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          echo "version=v${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Current version: v${VERSION}"
+
+      - name: Delete existing latest release and tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --yes || true
+          git push origin :refs/tags/latest || true
+
+      - name: Create latest tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -f latest
+          git push -f origin latest
+
+      - name: Create or Update Latest Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: "Latest Build (${{ steps.version.outputs.version }})"
+          body: |
+            ## 最新自动构建
+
+            版本：${{ steps.version.outputs.version }}
+            提交：${{ github.sha }}
+            分支：${{ github.ref_name }}
+
+            ### 产物
+
+            - Linux AMD64：`notebooklm-cli-linux-amd64`
+            - Linux ARM64：`notebooklm-cli-linux-arm64`
+
+            ### 快速下载
+
+            ```bash
+            wget https://github.com/${{ github.repository }}/releases/download/latest/notebooklm-cli-linux-amd64 -O notebooklm-cli && chmod +x notebooklm-cli
+            ```
+          files: release-files/*
+          prerelease: false
+          draft: false
