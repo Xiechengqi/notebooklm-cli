@@ -16,5 +16,6 @@ pub async fn execute(client: &AgentBrowserClient, _params: &Value) -> AppResult<
         "notebook_id": state.notebook_id,
         "login_required": state.login_required,
         "notebook_count": state.notebook_count,
+        "google_account": state.google_account,
     }))
 }

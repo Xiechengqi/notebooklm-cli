@@ -33,6 +33,17 @@ pub struct ExecutionRecord {
     pub summary: String,
 }
 
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct PreviewSyncStatus {
+    pub running: bool,
+    pub last_started_at: Option<u64>,
+    pub last_finished_at: Option<u64>,
+    pub last_error: Option<String>,
+    pub last_added: u64,
+    pub last_skipped: u64,
+    pub last_failed_ports: u64,
+}
+
 impl ExecutionRecord {
     pub fn new(
         source: impl Into<String>,
@@ -59,6 +70,7 @@ pub struct AppState {
     pub manifest: DescribeManifest,
     pub runtime: Arc<RwLock<RuntimeState>>,
     pub cdp_ports: Arc<RwLock<Vec<String>>>,
+    pub preview_status: Arc<RwLock<PreviewSyncStatus>>,
     pub db: Db,
     pub executor: CommandExecutor,
 }
@@ -120,10 +132,13 @@ pub async fn serve(
             recent_executions: Vec::new(),
         })),
         cdp_ports: cdp_ports_shared,
+        preview_status: Arc::new(RwLock::new(PreviewSyncStatus::default())),
         db,
         executor: CommandExecutor::new(CommandRegistry::new()),
         first_run,
     });
+
+    crate::preview::spawn_periodic(state.clone());
 
     let app = routes::router(state.clone());
     let addr: SocketAddr = format!("{host}:{port}")

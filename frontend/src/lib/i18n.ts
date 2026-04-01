@@ -2,8 +2,8 @@ type Lang = 'en' | 'zh';
 
 const dict = {
   nav: {
-    en: { console: 'Console', commands: 'Commands', mcp: 'MCP', cdp: 'CDP', skills: 'Skills', docs: 'Docs', settings: 'Settings', history: 'History', logout: 'Logout', login: 'Login', setup_password: 'Setup Password' },
-    zh: { console: '控制台', commands: '命令', mcp: 'MCP', cdp: 'CDP', skills: '技能', docs: '文档', settings: '设置', history: '历史', logout: '登出', login: '登录', setup_password: '设置密码' },
+    en: { console: 'Console', commands: 'Commands', mcp: 'MCP', cdp: 'CDP', skills: 'Skills', docs: 'Docs', settings: 'Settings', history: 'History', preview: 'Preview', logout: 'Logout', login: 'Login', setup_password: 'Setup Password' },
+    zh: { console: '控制台', commands: '命令', mcp: 'MCP', cdp: 'CDP', skills: '技能', docs: '文档', settings: '设置', history: '历史', preview: '预览', logout: '登出', login: '登录', setup_password: '设置密码' },
   },
   theme: {
     en: { light: 'Light', dark: 'Dark', auto: 'Auto' },
@@ -85,6 +85,44 @@ const dict = {
     en: { title: 'Execution History', description: 'Full log of all command executions across CLI, API, and MCP.' },
     zh: { title: '执行历史', description: '所有通过 CLI、API 和 MCP 执行的命令完整记录。' },
   },
+  preview: {
+    en: {
+      title: 'Preview Notes',
+      description: 'Cached NotebookLM note content synced from all configured CDP ports.',
+      sync_now: 'Sync Now',
+      syncing: 'Syncing…',
+      last_sync: 'Last Sync',
+      added: 'Added',
+      skipped: 'Skipped',
+      failed_ports: 'Failed Ports',
+      empty: 'No cached notes yet. Run a sync to populate preview data.',
+      account: 'Account',
+      notebook: 'Notebook',
+      cdp_port: 'CDP Port',
+      notebooks: 'notebooks',
+      notes: 'notes',
+      unknown_account: 'Unknown account',
+      never: 'Never',
+    },
+    zh: {
+      title: '预览',
+      description: '展示从所有已配置 CDP 同步并缓存到本地数据库的 NotebookLM 笔记内容。',
+      sync_now: '立即同步',
+      syncing: '同步中…',
+      last_sync: '最近同步',
+      added: '新增',
+      skipped: '跳过',
+      failed_ports: '失败端口',
+      empty: '还没有缓存笔记，请先执行一次同步。',
+      account: '账号',
+      notebook: 'Notebook',
+      cdp_port: 'CDP 端口',
+      notebooks: '个 Notebook',
+      notes: '条笔记',
+      unknown_account: '未知账号',
+      never: '从未',
+    },
+  },
   cdp: {
     en: {
       title: 'CDP Ports',
@@ -150,6 +188,7 @@ export function t(lang: Lang) {
     skills: dict.skills[lang],
     components: dict.components[lang],
     history: dict.history[lang],
+    preview: dict.preview[lang],
     cdp: dict.cdp[lang],
   };
 }

@@ -10,19 +10,19 @@
 
 - 独立 Rust CLI：`describe`、`execute`、`serve`
 - 本地 HTTP 服务（端口 12234）
-- MCP 工具暴露（11 个工具）
+- MCP 工具暴露（13 个工具）
 - Skill catalog（3 个技能）
 - 统一 manifest / describe 输出
 - 共享密码认证模型
 - `agent-browser` 绑定层
 - 执行历史记录
-- Wave 1-2 命令全部实现（11 个命令）
+- Wave 1-2 命令全部实现（13 个命令）
 
 ## 已实现命令
 
 只读命令（Wave 1）：
 
-- `status` - 检测 NotebookLM 页面可用性与登录状态
+- `status` - 检测 NotebookLM 页面可用性、登录状态与当前 Google 账号
 - `list` - 列出所有 notebook
 - `get` - 获取 notebook 元数据（emoji、source 数量、时间戳）
 - `summary` - 获取 notebook 摘要
@@ -37,6 +37,11 @@
 - `note_list` - 列出 Studio 面板的笔记
 - `note_get` - 获取单条笔记内容
 
+写入命令（Wave 2）：
+
+- `note_create` - 在 Studio 面板中创建新笔记
+- `source_add_youtube` - 向 notebook 添加 YouTube 视频来源
+
 ## 已实现 MCP Tools
 
 - `notebooklm_status`
@@ -50,6 +55,8 @@
 - `notebooklm_history`
 - `notebooklm_note_list`
 - `notebooklm_note_get`
+- `notebooklm_note_create`
+- `notebooklm_source_add_youtube`
 
 ## 已实现 Skills
 

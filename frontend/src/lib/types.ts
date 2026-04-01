@@ -78,7 +78,32 @@ export interface BootstrapInfo {
   server: { host: string; port: number };
   agent_browser: { binary: string; detected: boolean };
   cdp: { ports: string[]; online: number; offline: number };
+  preview: PreviewSyncStatus;
   vnc: { configured: boolean };
+}
+
+export interface PreviewNoteEntry {
+  id: number;
+  cdp_port: string;
+  google_account: string;
+  notebook_id: string;
+  notebook_title: string;
+  note_key: string;
+  note_title: string;
+  content: string;
+  content_preview: string;
+  fetched_at: number;
+  created_at: number;
+}
+
+export interface PreviewSyncStatus {
+  running: boolean;
+  last_started_at: number | null;
+  last_finished_at: number | null;
+  last_error: string | null;
+  last_added: number;
+  last_skipped: number;
+  last_failed_ports: number;
 }
 
 export interface ApiResponse<T> {

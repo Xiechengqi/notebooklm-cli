@@ -33,7 +33,7 @@ async fn probe_port(binary: &str, cdp_port: &str, timeout_secs: u64) -> Option<A
 
     Some(AccountEntry {
         cdp_port: cdp_port.to_string(),
-        email: state.title.clone(),
+        email: state.google_account.clone(),
         display_name: String::new(),
         online: true,
         last_checked: now,

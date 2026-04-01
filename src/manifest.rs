@@ -271,6 +271,56 @@ pub fn command_specs() -> Vec<CommandSpec> {
                 description: "Note title or ID",
             }],
         },
+        CommandSpec {
+            name: "note_create",
+            category: "write",
+            wave: 2,
+            execution_mode: "ui-first",
+            summary: "Create a note in the Studio panel",
+            requires_auth: true,
+            params: vec![
+                ParamSpec {
+                    name: "notebook_id",
+                    kind: "string",
+                    required: false,
+                    description: "Notebook ID (defaults to current)",
+                },
+                ParamSpec {
+                    name: "title",
+                    kind: "string",
+                    required: false,
+                    description: "Note title (defaults to NotebookLM default)",
+                },
+                ParamSpec {
+                    name: "content",
+                    kind: "string",
+                    required: false,
+                    description: "Note body text",
+                },
+            ],
+        },
+        CommandSpec {
+            name: "source_add_youtube",
+            category: "write",
+            wave: 2,
+            execution_mode: "ui-first",
+            summary: "Add a YouTube video as a notebook source",
+            requires_auth: true,
+            params: vec![
+                ParamSpec {
+                    name: "notebook_id",
+                    kind: "string",
+                    required: false,
+                    description: "Notebook ID (defaults to current)",
+                },
+                ParamSpec {
+                    name: "url",
+                    kind: "string",
+                    required: true,
+                    description: "YouTube video URL",
+                },
+            ],
+        },
     ]
 }
 
@@ -340,6 +390,18 @@ pub fn tool_specs() -> Vec<ToolSpec> {
             name: "notebooklm_note_get",
             command: "note_get",
             read_only: true,
+            requires_auth: true,
+        },
+        ToolSpec {
+            name: "notebooklm_note_create",
+            command: "note_create",
+            read_only: false,
+            requires_auth: true,
+        },
+        ToolSpec {
+            name: "notebooklm_source_add_youtube",
+            command: "source_add_youtube",
+            read_only: false,
             requires_auth: true,
         },
     ]

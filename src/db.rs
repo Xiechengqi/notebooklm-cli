@@ -18,6 +18,35 @@ pub struct AccountEntry {
     pub last_checked: u64,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct PreviewNoteEntry {
+    pub id: i64,
+    pub cdp_port: String,
+    pub google_account: String,
+    pub notebook_id: String,
+    pub notebook_title: String,
+    pub note_key: String,
+    pub note_title: String,
+    pub content: String,
+    pub content_preview: String,
+    pub fetched_at: u64,
+    pub created_at: u64,
+}
+
+#[derive(Debug, Clone)]
+pub struct NewPreviewNoteEntry {
+    pub cdp_port: String,
+    pub google_account: String,
+    pub notebook_id: String,
+    pub notebook_title: String,
+    pub note_key: String,
+    pub note_title: String,
+    pub content: String,
+    pub content_preview: String,
+    pub fetched_at: u64,
+    pub created_at: u64,
+}
+
 #[derive(Clone)]
 pub struct Db {
     conn: Arc<Mutex<Connection>>,
@@ -36,7 +65,27 @@ impl Db {
                 display_name TEXT NOT NULL DEFAULT '',
                 online       INTEGER NOT NULL DEFAULT 0,
                 last_checked INTEGER NOT NULL DEFAULT 0
-            );",
+            );
+
+            CREATE TABLE IF NOT EXISTS preview_notes (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                cdp_port        TEXT NOT NULL,
+                google_account  TEXT NOT NULL DEFAULT '',
+                notebook_id     TEXT NOT NULL,
+                notebook_title  TEXT NOT NULL DEFAULT '',
+                note_key        TEXT NOT NULL,
+                note_title      TEXT NOT NULL,
+                content         TEXT NOT NULL DEFAULT '',
+                content_preview TEXT NOT NULL DEFAULT '',
+                fetched_at      INTEGER NOT NULL DEFAULT 0,
+                created_at      INTEGER NOT NULL DEFAULT 0,
+                UNIQUE(cdp_port, notebook_id, note_key)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_preview_notes_fetched_at
+                ON preview_notes (fetched_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_preview_notes_account
+                ON preview_notes (google_account, fetched_at DESC);",
         )
         .map_err(|err| AppError::Internal(err.to_string()))?;
         Ok(Self {
@@ -140,6 +189,87 @@ impl Db {
         conn.execute(
             "UPDATE accounts SET online = 0, last_checked = ?2 WHERE cdp_port = ?1",
             rusqlite::params![cdp_port, timestamp],
+        )
+        .map_err(|err| AppError::Internal(err.to_string()))?;
+        Ok(())
+    }
+
+    pub fn list_preview_notes(&self) -> AppResult<Vec<PreviewNoteEntry>> {
+        let conn = self.conn.lock().map_err(|err| AppError::Internal(err.to_string()))?;
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, cdp_port, google_account, notebook_id, notebook_title, note_key,
+                        note_title, content, content_preview, fetched_at, created_at
+                 FROM preview_notes
+                 ORDER BY fetched_at DESC, id DESC",
+            )
+            .map_err(|err| AppError::Internal(err.to_string()))?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok(PreviewNoteEntry {
+                    id: row.get(0)?,
+                    cdp_port: row.get(1)?,
+                    google_account: row.get(2)?,
+                    notebook_id: row.get(3)?,
+                    notebook_title: row.get(4)?,
+                    note_key: row.get(5)?,
+                    note_title: row.get(6)?,
+                    content: row.get(7)?,
+                    content_preview: row.get(8)?,
+                    fetched_at: row.get(9)?,
+                    created_at: row.get(10)?,
+                })
+            })
+            .map_err(|err| AppError::Internal(err.to_string()))?;
+        let mut result = Vec::new();
+        for row in rows {
+            result.push(row.map_err(|err| AppError::Internal(err.to_string()))?);
+        }
+        Ok(result)
+    }
+
+    pub fn preview_note_exists(
+        &self,
+        google_account: &str,
+        notebook_id: &str,
+        note_key: &str,
+    ) -> AppResult<bool> {
+        let conn = self.conn.lock().map_err(|err| AppError::Internal(err.to_string()))?;
+        let mut stmt = conn
+            .prepare(
+                "SELECT 1 FROM preview_notes
+                 WHERE google_account = ?1 AND notebook_id = ?2 AND note_key = ?3
+                 LIMIT 1",
+            )
+            .map_err(|err| AppError::Internal(err.to_string()))?;
+        let mut rows = stmt
+            .query(rusqlite::params![google_account, notebook_id, note_key])
+            .map_err(|err| AppError::Internal(err.to_string()))?;
+        Ok(rows
+            .next()
+            .map_err(|err| AppError::Internal(err.to_string()))?
+            .is_some())
+    }
+
+    pub fn insert_preview_note(&self, entry: &NewPreviewNoteEntry) -> AppResult<()> {
+        let conn = self.conn.lock().map_err(|err| AppError::Internal(err.to_string()))?;
+        conn.execute(
+            "INSERT OR IGNORE INTO preview_notes (
+                cdp_port, google_account, notebook_id, notebook_title, note_key,
+                note_title, content, content_preview, fetched_at, created_at
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            rusqlite::params![
+                entry.cdp_port,
+                entry.google_account,
+                entry.notebook_id,
+                entry.notebook_title,
+                entry.note_key,
+                entry.note_title,
+                entry.content,
+                entry.content_preview,
+                entry.fetched_at,
+                entry.created_at,
+            ],
         )
         .map_err(|err| AppError::Internal(err.to_string()))?;
         Ok(())

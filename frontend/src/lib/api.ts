@@ -5,9 +5,15 @@ import type {
   BootstrapInfo,
   CommandSpec,
   ExecutionRecord,
+  PreviewNoteEntry,
+  PreviewSyncStatus,
   SkillSpec,
   ToolSpec,
 } from './types';
+
+function isApiEnvelope<T>(value: unknown): value is ApiResponse<T> {
+  return typeof value === 'object' && value !== null && 'ok' in value && 'data' in value;
+}
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, options);
@@ -15,7 +21,19 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     window.location.href = '/login';
     throw new Error('Unauthorized');
   }
-  return res.json();
+  const json = await res.json();
+  return json as T;
+}
+
+async function requestApi<T>(url: string, options?: RequestInit): Promise<ApiResponse<T>> {
+  const json = await request<unknown>(url, options);
+  if (isApiEnvelope<T>(json)) {
+    return json;
+  }
+  return {
+    ok: true,
+    data: json as T,
+  };
 }
 
 export async function bootstrap(): Promise<BootstrapInfo> {
@@ -23,7 +41,7 @@ export async function bootstrap(): Promise<BootstrapInfo> {
 }
 
 export async function login(password: string): Promise<ApiResponse<{ ok: boolean }>> {
-  return request('/api/login', {
+  return requestApi('/api/login', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ password }),
@@ -31,11 +49,11 @@ export async function login(password: string): Promise<ApiResponse<{ ok: boolean
 }
 
 export async function logout(): Promise<ApiResponse<{ logged_out: boolean }>> {
-  return request('/api/logout', { method: 'POST' });
+  return requestApi('/api/logout', { method: 'POST' });
 }
 
 export async function setupPassword(password: string): Promise<ApiResponse<{ configured: boolean }>> {
-  return request('/api/setup/password', {
+  return requestApi('/api/setup/password', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ password }),
@@ -43,11 +61,11 @@ export async function setupPassword(password: string): Promise<ApiResponse<{ con
 }
 
 export async function getConfig(): Promise<ApiResponse<AppConfig>> {
-  return request('/api/config');
+  return requestApi('/api/config');
 }
 
 export async function updateConfig(config: AppConfig): Promise<ApiResponse<{ saved: boolean }>> {
-  return request('/api/config', {
+  return requestApi('/api/config', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(config),
@@ -55,26 +73,26 @@ export async function updateConfig(config: AppConfig): Promise<ApiResponse<{ sav
 }
 
 export async function getCommands(): Promise<ApiResponse<CommandSpec[]>> {
-  return request('/api/commands');
+  return requestApi('/api/commands');
 }
 
 export async function getHistory(): Promise<ApiResponse<ExecutionRecord[]>> {
-  return request('/api/history');
+  return requestApi('/api/history');
 }
 
 export async function getMcpTools(): Promise<ApiResponse<ToolSpec[]>> {
-  return request('/api/mcp/tools');
+  return requestApi('/api/mcp/tools');
 }
 
 export async function getSkills(): Promise<ApiResponse<SkillSpec[]>> {
-  return request('/api/skills');
+  return requestApi('/api/skills');
 }
 
 export async function executeCommand(
   command: string,
   params: Record<string, unknown>,
 ): Promise<ApiResponse<unknown>> {
-  return request('/api/execute/' + encodeURIComponent(command), {
+  return requestApi('/api/execute/' + encodeURIComponent(command), {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ params, format: 'json' }),
@@ -100,19 +118,19 @@ export async function callMcpTool(
 export async function changePassword(
   newPassword: string,
 ): Promise<ApiResponse<{ password_changed: boolean }>> {
-  return request('/api/password/change', {
+  return requestApi('/api/password/change', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ new_password: newPassword }),
+    body: JSON.stringify({ password: newPassword }),
   });
 }
 
 export async function getCdpPorts(): Promise<ApiResponse<{ ports: string[] }>> {
-  return request('/api/cdp-ports');
+  return requestApi('/api/cdp-ports');
 }
 
 export async function updateCdpPorts(ports: string[]): Promise<ApiResponse<{ ports: string[] }>> {
-  return request('/api/cdp-ports', {
+  return requestApi('/api/cdp-ports', {
     method: 'PUT',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ ports }),
@@ -120,9 +138,23 @@ export async function updateCdpPorts(ports: string[]): Promise<ApiResponse<{ por
 }
 
 export async function refreshCdpPorts(): Promise<ApiResponse<{ refreshing: boolean }>> {
-  return request('/api/cdp-ports/refresh', { method: 'POST' });
+  return requestApi('/api/cdp-ports/refresh', { method: 'POST' });
 }
 
 export async function getAccounts(): Promise<ApiResponse<AccountEntry[]>> {
-  return request('/api/accounts');
+  return requestApi('/api/accounts');
+}
+
+export async function getPreviewNotes(): Promise<ApiResponse<PreviewNoteEntry[]>> {
+  return requestApi('/api/preview');
+}
+
+export async function getPreviewStatus(): Promise<ApiResponse<PreviewSyncStatus>> {
+  return requestApi('/api/preview/status');
+}
+
+export async function triggerPreviewSync(): Promise<
+  ApiResponse<{ added: number; skipped: number; failed_ports: number }>
+> {
+  return requestApi('/api/preview/sync', { method: 'POST' });
 }

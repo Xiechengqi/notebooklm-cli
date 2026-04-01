@@ -25,6 +25,8 @@ pub struct PageState {
     pub login_required: bool,
     #[serde(rename = "notebookCount")]
     pub notebook_count: u32,
+    #[serde(rename = "googleAccount")]
+    pub google_account: String,
 }
 
 /// Navigate to a notebook page, ensuring we're on the right URL.
@@ -79,7 +81,20 @@ pub async fn get_page_state(client: &AgentBrowserClient) -> AppResult<PageState>
             .filter(Boolean)
             .reduce((count, href, index, list) => list.indexOf(href) === index ? count + 1 : count, 0);
 
-        return JSON.stringify({ url, title, hostname, kind, notebookId, loginRequired, notebookCount });
+        const emailRegex = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/ig;
+        const candidates = [
+            title,
+            document.body?.innerText || '',
+            ...Array.from(document.querySelectorAll('[aria-label], [title]')).flatMap(node => [
+                node.getAttribute('aria-label') || '',
+                node.getAttribute('title') || '',
+            ]),
+        ];
+        const googleAccount = candidates
+            .flatMap(text => (text.match(emailRegex) || []).map(value => value.trim()))
+            .find(Boolean) || '';
+
+        return JSON.stringify({ url, title, hostname, kind, notebookId, loginRequired, notebookCount, googleAccount });
     })()"#;
 
     client.eval_json::<PageState>(script).await

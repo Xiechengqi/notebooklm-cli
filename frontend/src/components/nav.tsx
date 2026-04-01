@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Globe, LogOut, History } from 'lucide-react';
+import { Globe, LogOut, History, Eye } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useLang } from '@/lib/use-lang';
 import { t } from '@/lib/i18n';
@@ -58,6 +58,18 @@ export function Nav({ authenticated }: { authenticated: boolean }) {
               >
                 <History className="h-3.5 w-3.5" />
                 {tr.nav.history}
+              </Link>
+              <Link
+                href="/preview"
+                className={clsx(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200',
+                  pathname === '/preview'
+                    ? 'bg-brand-50 text-brand-600'
+                    : 'text-slate-600 hover:bg-brand-50 hover:text-brand-600',
+                )}
+              >
+                <Eye className="h-3.5 w-3.5" />
+                {tr.nav.preview}
               </Link>
             </>
           ) : (

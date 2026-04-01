@@ -6,8 +6,8 @@ use crate::commands::registry::CommandRegistry;
 use crate::config::AppConfig;
 use crate::errors::{AppError, AppResult};
 use crate::notebooklm::commands::{
-    get, history, list, note_get, note_list, source_fulltext, source_get, source_guide,
-    source_list, status, summary,
+    get, history, list, note_create, note_get, note_list, source_add_youtube, source_fulltext,
+    source_get, source_guide, source_list, status, summary,
 };
 
 #[derive(Clone)]
@@ -70,6 +70,8 @@ impl CommandExecutor {
             "history" => history::execute(&client, &params).await,
             "note_list" => note_list::execute(&client, &params).await,
             "note_get" => note_get::execute(&client, &params).await,
+            "note_create" => note_create::execute(&client, &params).await,
+            "source_add_youtube" => source_add_youtube::execute(&client, &params).await,
             _ => Ok(json!({
                 "status": "planned",
                 "message": format!("Command `{}` is registered but not implemented yet", command.name),

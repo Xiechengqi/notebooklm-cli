@@ -10,6 +10,7 @@ mod errors;
 mod manifest;
 mod models;
 mod notebooklm;
+mod preview;
 mod response;
 mod server;
 

@@ -12,6 +12,7 @@ use crate::auth::{AUTH_COOKIE_NAME, is_authenticated};
 use crate::config;
 use crate::discovery;
 use crate::errors::AppError;
+use crate::preview;
 use crate::response::ApiResponse;
 use crate::server::{AppState, ExecutionRecord};
 
@@ -26,6 +27,9 @@ pub fn router(state: Arc<AppState>) -> Router {
         .route("/api/config", get(get_config).post(update_config))
         .route("/api/commands", get(get_commands))
         .route("/api/history", get(get_history))
+        .route("/api/preview", get(get_preview))
+        .route("/api/preview/status", get(get_preview_status))
+        .route("/api/preview/sync", post(trigger_preview_sync))
         .route("/api/mcp/tools", get(get_mcp_tools))
         .route("/api/skills", get(get_skills))
         .route("/api/password/change", post(change_password))
@@ -63,6 +67,7 @@ async fn bootstrap(State(state): State<Arc<AppState>>) -> Json<Value> {
             "online": online_count,
             "offline": offline_count,
         },
+        "preview": state.preview_status.read().await.clone(),
         "vnc": {
             "configured": !runtime.config.vnc.url.is_empty(),
         }
@@ -197,6 +202,47 @@ async fn get_history(
         return Err(AppError::AuthRequired);
     }
     Ok(Json(json!(runtime.recent_executions)))
+}
+
+async fn get_preview(
+    headers: HeaderMap,
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<Value>, AppError> {
+    let runtime = state.runtime.read().await;
+    if !is_authenticated(&headers, &runtime.auth_state) {
+        return Err(AppError::AuthRequired);
+    }
+    drop(runtime);
+    Ok(Json(json!(state.db.list_preview_notes()?)))
+}
+
+async fn get_preview_status(
+    headers: HeaderMap,
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<Value>, AppError> {
+    let runtime = state.runtime.read().await;
+    if !is_authenticated(&headers, &runtime.auth_state) {
+        return Err(AppError::AuthRequired);
+    }
+    drop(runtime);
+    Ok(Json(json!(state.preview_status.read().await.clone())))
+}
+
+async fn trigger_preview_sync(
+    headers: HeaderMap,
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<Value>, AppError> {
+    let runtime = state.runtime.read().await;
+    if !is_authenticated(&headers, &runtime.auth_state) {
+        return Err(AppError::AuthRequired);
+    }
+    drop(runtime);
+
+    let result = preview::run_sync(state).await?;
+    Ok(Json(json!(ApiResponse::success(
+        result,
+        Some("preview_sync".to_string())
+    ))))
 }
 
 async fn get_mcp_tools(State(state): State<Arc<AppState>>) -> Json<Value> {

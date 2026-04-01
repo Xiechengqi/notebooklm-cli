@@ -41,7 +41,7 @@ fn serve_file(file: &include_dir::File<'_>) -> Response {
     let mime = mime_for_path(file.path().to_str().unwrap_or(""));
     (
         [(header::CONTENT_TYPE, mime)],
-        file.contents(),
+        file.contents().to_vec(),
     )
         .into_response()
 }
