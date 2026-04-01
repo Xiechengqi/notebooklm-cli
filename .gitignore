@@ -1,6 +1,5 @@
 /target
 /notebooklm-cli
-/docs
 /frontend/tsconfig.tsbuildinfo
 node_modules
 out
