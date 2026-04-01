@@ -2,3 +2,8 @@
 /notebooklm-cli
 /docs
 /frontend/tsconfig.tsbuildinfo
+node_modules
+out
+.next
+next-env.d.ts
+package-lock.json
